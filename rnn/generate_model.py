@@ -59,7 +59,7 @@ early_stopping_callback = tf.keras.callbacks.EarlyStopping(
     verbose=1
 )
 
-checkpoint_dir = 'data/tmp/checkpoints'
+checkpoint_dir = 'rnn/tmp/checkpoints'
 os.makedirs(checkpoint_dir, exist_ok=True)
 
 checkpoint_prefix = os.path.join(checkpoint_dir, 'ckpt_{epoch}')

@@ -1,13 +1,13 @@
 import tensorflow as tf
 import json
 import numpy as np
-from recipe_tokenizer import final_tokenizer as tokenizer
+from . import tokenizer
 import configparser
 import os
 
 
 config = configparser.ConfigParser()
-config.read('data/launch.ini')
+config.read('rnn/launch.ini')
 
 config_model = config['MODEL']
 
@@ -46,24 +46,10 @@ model.add(tf.keras.layers.LSTM(
 
 model.add(tf.keras.layers.Dense(VOCABULARY_SIZE))
 
-# checkpoint = tf.train.Checkpoint(model)
-# checkpoint_manager = tf.train.CheckpointManager(checkpoint, checkpoint_dir, max_to_keep=7)
-
-# latest_checkpoint = checkpoint_manager.latest_checkpoint
-# if latest_checkpoint:
-#     checkpoint.restore(latest_checkpoint)
-
-# print(os.listdir(checkpoint_dir))
-
-# .expect_partial()
-
-print("Loading Weights...")
 
 model.load_weights(tf.train.latest_checkpoint(checkpoint_dir))
 model.build(tf.TensorShape([BATCH_SIZE, None]))
 
-print("Model Builded...")
-# model.summary()
 
 # Generating Recipes
 def generate_recipe(model, start_string, num_generate = 800, temperature=1.0):
@@ -87,13 +73,17 @@ def generate_recipe(model, start_string, num_generate = 800, temperature=1.0):
     return (start_string + ''.join(final_recipe))
 
 
-def generate_combinations(model, temperature):
+def generate_combinations(model, start_words, temperature):
+    generated = []
     chars_number = 1000
-    start_words = ["Apple", "Mushrooms", "Juice"]
     
     for word in start_words:
         print("Generating recipe for: " + word)
         generated_text = generate_recipe(model, word, chars_number, temperature)
-        print(generated_text)
-            
-generate_combinations(model, 0.2)
+        generated.append(generated_text)
+        
+    return generated
+
+
+if __name__ == "__main__":
+    generate_combinations(model, ["Letuce", "Mushroom", "Onion"], 0.2)

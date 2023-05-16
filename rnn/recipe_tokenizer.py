@@ -6,12 +6,12 @@ import sys
 
 config = configparser.ConfigParser()
 config.sections()
-config.read('data/launch.ini')
+config.read('rnn/launch.ini')
 
 datasets = [
-    'data/datasets/recipes_raw_nosource_ar.json',
-    'data/datasets/recipes_raw_nosource_epi.json',
-    'data/datasets/recipes_raw_nosource_fn.json',
+    'rnn/datasets/recipes_raw_nosource_ar.json',
+    'rnn/datasets/recipes_raw_nosource_epi.json',
+    'rnn/datasets/recipes_raw_nosource_fn.json',
 ]
 
 STOP_TITLE = "* "

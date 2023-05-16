@@ -1,15 +1,23 @@
 from pymongo.mongo_client import MongoClient
 from urllib.parse import quote_plus
 import configparser
-# from recipe_generator import model, generate_combinations
+import enchant
+
+from flavours import create_flavor_combination, ingredients_profile
+from rnn import generate_combinations, words_to_string, model
+import json
+
+
+d = enchant.Dict("en_US")
 
 config = configparser.ConfigParser()
-config.read('data/settings.ini')
+config.read('server/settings.ini')
 
 USERNAME = quote_plus(config['DEFAULT']['username'])
 PASSWORD = quote_plus(config['DEFAULT']['password'])
 
 uri = "mongodb+srv://" + USERNAME + ":" + PASSWORD + "@cluster0.5uhe4wh.mongodb.net/?retryWrites=true&w=majority"
+
 
 class DatabaseConnector:
     def __init__(self, uri="mongodb+srv://" + USERNAME + ":" + PASSWORD + "@cluster0.5uhe4wh.mongodb.net/?retryWrites=true&w=majority"):
@@ -27,24 +35,46 @@ class DatabaseConnector:
         except Exception as e:
             print(e)
     
-        
-    def ingredient_found(self, ingredient):
-        results = self.find({ "instructions": { "$regex": ingredient } })
-        for res in results:
-            print(res)
     
-    def return_record_in_array(self, arr):
-        query = {"ingredients": {"$in": arr}}
-        results = self.coll.find(query)
-        for result in results:
-            print(result)
+    def find_recipe_by_ingredient(self, ingredient):
         
+        d.check(ingredient.lower())
         
-def fill_db(db):
+        similiar_ingredients = d.suggest(ingredient.lower())
+        similiar_ingredients.append(ingredient)
+        
+        found = find_by_keyword(similiar_ingredients, self.coll)
+        
+        if found is None:
+        
+            combos = create_flavor_combination(similiar_ingredients)
+            title = words_to_string(ingredient, combos)
+            result = generate_combinations(model, [title], 0.5)
+            fill_db(result, self.coll, len(title.split(" ")))
+            created = find_by_keyword(similiar_ingredients, self.coll)
+            
+            if created is not None:
+                return created
+        
+        else:
+            return found
+        
+        return None
+        
+
+def isFound(arr):
+    return arr != None
+
+def find_by_keyword(ingredients, db):
+    for ing in ingredients:
+            query_keywords = db.find_one({"keywords": ing})
+            if query_keywords is not None:
+                return query_keywords
     
-    # res = generate_combinations(model, ["Apple", "Orange"], 0.2)
-    res = ''
-    for recipe in res:
+
+def fill_db(recipes, db, title_length):
+    
+    for recipe in recipes:
         
         recipe_title = ''
         recipe_instructions = ''
@@ -65,20 +95,36 @@ def fill_db(db):
             elif symbol == '_':
                 break
         
-        recipe_title = recipe_title.rstrip().lstrip()
-        recipe_ingredients = recipe_ingredients.rstrip().lstrip()
-        recipe_instructions = recipe_instructions.rstrip().lstrip()
+        recipe_title = recipe_title.rstrip().lstrip().replace("_", "")
+        recipe_ingredients = recipe_ingredients.rstrip().lstrip().replace("_", "")
+        recipe_instructions = recipe_instructions.rstrip().lstrip().replace("_", "")
         
-        if sum([recipe_title, recipe_ingredients, recipe_instructions]) < 20:
+        if len(recipe_instructions) <= 1:
+            recipe_instructions = " ".join(recipe_title.split()[title_length:])
+            recipe_title = " ".join(recipe_title.split()[:title_length]) 
+        
+        if sum([len(recipe_title), len(recipe_ingredients), len(recipe_instructions)]) < 20:
             continue
         
-        db.insert_one({"title": recipe_title, "ingredients": recipe_ingredients, "instructions": recipe_instructions})
+        text = recipe.lower()
+        words = text.split()
+        words = [word.strip('.,!;•▪︎()[]') for word in words]
+        unique = []
+        
+        for word in words:
+            if word not in unique:
+                unique.append(word)
+        
+        db.insert_one({
+            "title": recipe_title, 
+            "ingredients": recipe_ingredients, 
+            "instructions": recipe_instructions,
+            "keywords": unique})
 
 
 if __name__ == "__main__":
     con = DatabaseConnector(uri)
     con.return_record_in_array(["tomato"])
-    # con.fill_db()
 
     con.coll.insert_one({
         "title": "mlirge ot onion servion",
