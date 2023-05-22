@@ -22,7 +22,7 @@ def flavordb_entity_cols():
     ]
     
     
-# what we want to rename the JSON object "columns" to
+
 def flavordb_df_cols():
     return [
         'entity id', 'alias', 'synonyms',
@@ -30,8 +30,6 @@ def flavordb_df_cols():
     ]
 
 
-
-# "subcolumns" in the "molecules" column that we are interested in
 def molecules_df_cols():
     return ['pubchem id', 'common name', 'flavor profile']   
 
@@ -39,30 +37,23 @@ def molecules_df_cols():
 
 
 def clean_flavordb_dataframes(flavor_df, molecules_df):
-    """
-    Helps ensure consistent intra-column typing and converts all strings to lowercase.
-    """
+
     strtype = type('')
     settype = type(set())
-    
-    # ensuring that these columns have type str
+
     for k in ['alias', 'scientific name', 'category']:
         flavor_df[k] = [
             elem.strip().lower() if isinstance(elem, strtype) else ''
             for elem in flavor_df[k]
         ]
-    
-    # ensuring that these columns are always a set of str
+
     def map_to_synonyms_set(elem):
         if isinstance(elem, settype):
             return elem
         elif isinstance(elem, strtype) and len(elem) > 0:
-            # if it's a string of a set,
             if elem[0] == '{' and elem[-1] == '}':
-                # convert it to a set
                 return eval(elem)
             else:
-                # else it's probably directly from source
                 return set(elem.strip().lower().split(', '))
         else:
             return set()
@@ -83,34 +74,25 @@ def clean_flavordb_dataframes(flavor_df, molecules_df):
     ]
 
 
-# generate dataframes from some of the JSON objects
 def get_flavordb_dataframes(start, end):
-    """
-    Download JSON data, converts it to DataFrames, and cleans them.
-    
-    Returns DataFrames for both foods and molecules, as well as missing JSON entries.
-    """
-    # make intermediate values to make dataframes from
+
     flavordb_data = []
     molecules_dict = {}
-    missing = [] # numbers of the missing JSON files during iteration
+    missing = []
     
     flavordb_cols = flavordb_entity_cols()
     
     for i in range(start, end):
-        # we use a try-except here because some of the JSON pages are missing
+
         try:
-            # 1: Find the JSON file. Gets the ith food entity, as a JSON dict
             fdbe = get_flavordb_entity(i + 1)
 
-            # get only the relevant fields (columns) of the dict
             flavordb_series = [fdbe[k] for k in flavordb_cols[:-1]]
-            flavordb_series.append( # convert the field to a set
+            flavordb_series.append( 
                 set([m['pubchem_id'] for m in fdbe['molecules']])
             )
             flavordb_data.append(flavordb_series)
 
-            # update the molecules dataframe with the data in 'molecules' field
             for m in fdbe['molecules']:
                 if m['pubchem_id'] not in molecules_dict:
                     molecules_dict[m['pubchem_id']] = [
@@ -125,7 +107,7 @@ def get_flavordb_dataframes(start, end):
                     'Error while fetching JSON object from ' + flavordb_entity_url(i)
                 ) from e
             
-    # generate the dataframes
+
     flavordb_df = pd.DataFrame(
         flavordb_data,
         columns=flavordb_df_cols()
@@ -138,28 +120,20 @@ def get_flavordb_dataframes(start, end):
         columns=molecules_df_cols()
     )
     
-    # clean up the dataframe columns
     flavordb_df, molecules_df = clean_flavordb_dataframes(flavordb_df, molecules_df)
     
     return [flavordb_df, molecules_df, missing]
 
 
-# updates & saves the download progress of your dataframes
+
 def update_flavordb_dataframes(df0, df1, ranges):
-    """
-    Adds more data to the specified DataFrames, and saves them as CSV files.
-    
-    If successful, returns the specified DataFrames, now updated, and any missing JSON files.
-    """
+
     df0_old = df0
     df1_old = df1
     missing_old = []
 
-    # time how long it took to download the files
     start = time.time()
     
-    # for each range in ranges, save your progress.
-    # don't continue with the program unless everything succeeds!
     try:
         for a, b in ranges:
             df0_new, df1_new, missing_new = get_flavordb_dataframes(a, b)
@@ -170,9 +144,8 @@ def update_flavordb_dataframes(df0, df1, ranges):
         
         return df0_old, df1_old, missing_old
     except:
-        raise # always throw the error so you know what happened
+        raise 
     finally:
-        # even if you throw an error, you'll have saved them as csv files
         df0_old.to_csv('flavordb.csv')
         df1_old.to_csv('molecules.csv')
 
@@ -182,8 +155,6 @@ def update_flavordb_dataframes(df0, df1, ranges):
         
 
 
-
-# get the missing entries
 def missing_entity_ids(flavor_df):
     """
     Get the IDs of the missing JSON entries for this particular food DataFrame.
@@ -196,7 +167,7 @@ def missing_entity_ids(flavor_df):
     return out
 
 
-# loads the dataframes from csv files
+
 def load_db():
     settype = type(set())
     

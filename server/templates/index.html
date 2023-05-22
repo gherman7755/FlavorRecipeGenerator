@@ -4,24 +4,25 @@
     <meta charset="UTF-8">
     <meta http-equiv="X-UA-Compatible" content="IE=edge">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='styles/style.css') }}">
+    <link rel="stylesheet" type="text/css" href="{{ url_for('static',filename='./styles/style.css') }}">
+    <!-- <link rel="stylesheet" type="text/css" src="../static/styles/style.css"> -->
     <title>Hello</title>
     <h1>Just Temporary</h1>
     <div class="container">
         <form action="{{ url_for('mainpage') }}" method="post" enctype="multipart/form-data">
-            <input type="text" placeholder="enter ingredients" name="handle_data" id="generate">
+            <input type="text" placeholder="Enter Ingredient" name="handle_data" id="generate">
             <button type="submit">
-                <img id="search-image" href="url_for('templates', filename='images/search.png')" alt="search icon">
+                <img id="search-image" src="../static/images/search.png" alt="search icon">
             </button>
         </form>
     </div>
     <div class="search_results">
         {% if search_result %}
-            <h3>Title: 
+            <h2>Title: 
                 {{ search_result.title }}
-            </h3>
-            Ingredients: {{ search_result.ingredients }}
-            instructions: {{ search_result.instructions }}
+            </h2>
+            <div class="some"><b>Ingredients:</b> {{ search_result.ingredients }}</div>
+            <div class="some"><b>Instructions:</b> {{ search_result.instructions }}</div>
         {% endif %}
     </div>
 </head>
